@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1"
-xlsx_batch_reader = "0.4"
-rusqlite = "0.38"
+anyhow = { version = "1" }
+rusqlite = { version = "0.38" }
+xlsx_batch_reader = { version = "0.4" }

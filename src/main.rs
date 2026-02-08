@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::fs::remove_file;
+use std::path::PathBuf;
 
 use rusqlite::Connection;
 use xlsx_batch_reader::read::XlsxBook;
@@ -17,10 +18,15 @@ const PARTITA_IVA: usize = 9;
 const CD_FISCALE: usize = 10;
 
 fn main() -> anyhow::Result<()> {
+    let in_path: PathBuf =
+        std::env::args().nth(1).unwrap_or_else(|| std::env::var("IN_PATH").expect("Missing IN_PATH")).into();
+    let out_file: PathBuf =
+        std::env::args().nth(2).unwrap_or_else(|| std::env::var("OUT_FILE").expect("Missing OUT_FILE")).into();
     let mut ditte: HashSet<String> = HashSet::new();
-    remove_file("TSPRI.db").ok();
-    let mut db = Connection::open("TSPRI.db")?;
-    db.execute_batch("
+    remove_file(&out_file).ok();
+    let mut db = Connection::open(&out_file)?;
+    db.execute_batch(
+        "
         CREATE TABLE ditte (
             ragsoc TEXT,
             ditta INTEGER,
@@ -35,9 +41,11 @@ fn main() -> anyhow::Result<()> {
             codfis TEXT,
             PRIMARY KEY (ditta, tipo, codice)
         );
-    ")?;
+    ",
+    )?;
     for xf in ["PRICLI.xlsx", "PRIFOR.xlsx"] {
-        let mut wb = XlsxBook::new(xf, true)?;
+        println!("Processing {r:?}...", r = in_path.join(xf));
+        let mut wb = XlsxBook::new(in_path.join(xf), true)?;
         for sn in wb.get_visible_sheets().clone() {
             let ws = wb.get_sheet_by_name(&sn, 5000, 0, 1, 11, true)?;
             for batch in ws {
@@ -46,9 +54,9 @@ fn main() -> anyhow::Result<()> {
                     for rw in rows {
                         if let Some(ref dsc_ditta) = rw[RS_DITTA].get::<String>()? {
                             if !ditte.contains(dsc_ditta) {
-                                tx.execute("INSERT INTO ditte (ragsoc, ditta) VALUES (?1, ?2)", (
-                                    dsc_ditta,
-                                    rw[CD_DITTA].get::<i64>()?.unwrap_or_default())
+                                tx.execute(
+                                    "INSERT INTO ditte (ragsoc, ditta) VALUES (?1, ?2)",
+                                    (dsc_ditta, rw[CD_DITTA].get::<i64>()?.unwrap_or_default()),
                                 )?;
                                 ditte.insert(dsc_ditta.to_string());
                             }

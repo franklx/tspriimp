@@ -3,5 +3,4 @@ target*/
 Cargo.lock
 src/_/
 **/IN/
-*.xlsx
-*.db
+data/
