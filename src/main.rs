@@ -15,7 +15,9 @@ const RAGSOC: usize = 4;
 ///// CITTA: usize = 7;
 ///// PROV: usize = 8;
 const PARTITA_IVA: usize = 9;
-const CD_FISCALE: usize = 10;
+const COD_FISCALE: usize = 10;
+///// ALIAS: usize = 11;
+const PIVA_ESTERA: usize = 12;
 
 fn main() -> anyhow::Result<()> {
     let in_path: PathBuf =
@@ -39,6 +41,7 @@ fn main() -> anyhow::Result<()> {
             ragsoc TEXT,
             partiv TEXT,
             codfis TEXT,
+            pivaes TEXT,
             PRIMARY KEY (ditta, tipo, codice)
         );
     ",
@@ -47,7 +50,7 @@ fn main() -> anyhow::Result<()> {
         println!("Processing {r:?}...", r = in_path.join(xf));
         let mut wb = XlsxBook::new(in_path.join(xf), true)?;
         for sn in wb.get_visible_sheets().clone() {
-            let ws = wb.get_sheet_by_name(&sn, 5000, 0, 1, 11, true)?;
+            let ws = wb.get_sheet_by_name(&sn, 5000, 0, 1, 13, true)?;
             for batch in ws {
                 let tx = db.transaction()?;
                 if let Ok((_, rows)) = batch {
@@ -61,14 +64,15 @@ fn main() -> anyhow::Result<()> {
                                 ditte.insert(dsc_ditta.to_string());
                             }
                         }
-                        tx.execute("INSERT INTO anag (ditta, tipo, codice, ragsoc, partiv, codfis) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                        tx.execute("INSERT INTO anag (ditta, tipo, codice, ragsoc, partiv, codfis, pivaes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
                             (
                                 rw[CD_DITTA].get::<i64>()?,
                                 rw[TIPO].get::<i64>()?,
                                 rw[CODICE].get::<i64>()?,
                                 rw[RAGSOC].get::<String>()?,
                                 rw[PARTITA_IVA].get::<String>()?,
-                                rw[CD_FISCALE].get::<String>()?
+                                rw[COD_FISCALE].get::<String>()?,
+                                rw[PIVA_ESTERA].get::<String>()?,
                             )
                         )?;
                     }
